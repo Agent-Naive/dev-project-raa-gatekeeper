@@ -1518,7 +1518,7 @@
                   onclick={() => loadVaultData()}
                   disabled={isLoadingVault}
                   title={isLoadingVault ? "Scanning vault..." : "Refresh vault reports (re-scan subs + job folders)"}
-                  style="font-size:11px; line-height:1; padding:1px 6px; cursor:pointer; border:1px solid #ccc; background:#f8f8f8; border-radius:3px; flex-shrink:0;"
+                  style="font-size:12px; padding:6px 8px; cursor:pointer; border:1px solid #333; background:#222; color:#ddd; border-radius:4px; flex-shrink:0; line-height:1; box-sizing:border-box;"
                 >{isLoadingVault ? "..." : "⟳"}</button>
               </div>
 
