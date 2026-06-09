@@ -785,6 +785,9 @@
       certMsg = String(err);
     } finally {
       isProcessing = false;
+      // Belt-and-suspenders: guarantee timers are stopped even on unusual control flow
+      stopHandoffTimer();
+      stopTotalTimer();
     }
   }
 

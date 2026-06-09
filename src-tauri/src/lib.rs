@@ -1259,11 +1259,51 @@ async fn generate_manifest(
     let mut report_entries = String::new();
     let mut any_violations = false;
 
+    /// Robustly extract a JSON array from the model's response.
+    /// LLMs often wrap output in ```json fences, add explanatory text, or emit slightly malformed JSON.
+    /// We try direct parse, then clean markdown, then a best-effort [ ... ] substring extraction.
+    fn extract_json_array_str(text: &str) -> Option<String> {
+        let t = text.trim();
+
+        // 1. Direct parse of the whole thing
+        if serde_json::from_str::<Vec<serde_json::Value>>(t).is_ok() {
+            return Some(t.to_string());
+        }
+
+        // 2. Strip common markdown code fences
+        let cleaned = t
+            .trim_start_matches("```json")
+            .trim_start_matches("```JSON")
+            .trim_start_matches("```")
+            .trim_end_matches("```")
+            .trim()
+            .to_string();
+
+        if serde_json::from_str::<Vec<serde_json::Value>>(&cleaned).is_ok() {
+            return Some(cleaned);
+        }
+
+        // 3. Best-effort: locate the outermost [ ... ] that parses as an array
+        if let Some(start) = cleaned.find('[') {
+            if let Some(end) = cleaned.rfind(']') {
+                if end > start {
+                    let candidate = &cleaned[start..=end];
+                    if serde_json::from_str::<Vec<serde_json::Value>>(candidate).is_ok() {
+                        return Some(candidate.to_string());
+                    }
+                }
+            }
+        }
+
+        None
+    }
+
     for bucket in buckets {
         let mut batch_text = String::new();
+        let is_multi_bucket = bucket.len() > 1;
 
         if bucket.len() == 1 {
-            // Single file in bucket — ask for focused analysis
+            // Single file in bucket — ask for focused analysis (no JSON required)
             let job = &bucket[0];
             batch_text.push_str(&format!(
                 "Analyze the following file for security issues, malicious code, or suspicious behavior.\n\n\
@@ -1308,10 +1348,12 @@ async fn generate_manifest(
 
             batch_text.push_str(
                 "Now execute the process described above.\n\n\
-                 REQUIRED OUTPUT FORMAT (YOU MUST FOLLOW EXACTLY):\n\
-                 Output ONLY a valid JSON array. Nothing before it, nothing after it.\n\n\
+                 REQUIRED OUTPUT FORMAT (YOU MUST FOLLOW EXACTLY — CRITICAL):\n\
+                 Your *entire* response must be ONLY a valid JSON array. \n\
+                 NOTHING before the opening [, NOTHING after the closing ].\n\
+                 No markdown code fences (```json), no explanations, no extra text of any kind.\n\n\
                  The array must contain one object per file in this batch, in the same order.\n\n\
-                 Each object MUST use these exact field names:\n\
+                 Each object MUST use these exact field names (and only these):\n\
                  {\n\
                    \"file_number\": number (starting from 1),\n\
                    \"file_path\": \"exact FILE PATH string from the list above\",\n\
@@ -1322,7 +1364,7 @@ async fn generate_manifest(
                  - Use the exact field names (file_number, file_path, verdict, analysis).\n\
                  - Do not rename, add, or remove fields.\n\
                  - Do not wrap the array in an object.\n\
-                 - Output ONLY the raw JSON array.\n\n\
+                 - Output ONLY the raw JSON array — nothing else in your response.\n\n\
                  Begin processing FILE 1 now."
             );
         }
@@ -1340,7 +1382,8 @@ async fn generate_manifest(
             any_violations = true;
         }
 
-        // Try to parse structured JSON output from the model
+        // Try to parse structured JSON output from the model.
+        // For multi-file buckets we expect an array. For single-file we expect prose (parse will fail, which is fine).
         #[derive(serde::Deserialize, Debug)]
         #[allow(dead_code)]
         struct FileAnalysis {
@@ -1350,23 +1393,41 @@ async fn generate_manifest(
             analysis: String,
         }
 
-        let analyses: Vec<FileAnalysis> = match serde_json::from_str(&report.reasoning) {
-            Ok(parsed) => {
-                // Successfully parsed per-file structured output
-                parsed
+        let analyses: Vec<FileAnalysis> = if let Some(json_str) = extract_json_array_str(&report.reasoning) {
+            match serde_json::from_str(&json_str) {
+                Ok(parsed) => parsed,
+                Err(e) => {
+                    eprintln!(
+                        "WARNING: Extracted JSON array but still failed to deserialize to FileAnalysis vec.\n\
+                         Error: {}\n\
+                         Extracted candidate (first 1500 chars):\n{}\n",
+                        e,
+                        &json_str.chars().take(1500).collect::<String>()
+                    );
+                    vec![]
+                }
             }
-            Err(e) => {
-                // Parsing failed — log the raw response for debugging
+        } else {
+            // No usable array found in the response at all.
+            if is_multi_bucket {
                 eprintln!(
-                    "WARNING: Failed to parse structured JSON from model for multi-file bucket.\n\
-                     Error: {}\n\
+                    "WARNING: Failed to locate/parse any JSON array from model for multi-file bucket.\n\
                      Raw response (first 2000 chars):\n{}\n",
-                    e,
                     &report.reasoning.chars().take(2000).collect::<String>()
                 );
-                vec![]
             }
+            vec![]
         };
+
+        // When a multi-file bucket completely failed to parse, still capture the raw model response
+        // once in the aggregated report_entries so the original blob is preserved for the job
+        // (it will NOT be injected into the individual per-file .raa files anymore).
+        if is_multi_bucket && analyses.is_empty() && !report.reasoning.trim().is_empty() {
+            report_entries.push_str(&format!(
+                "--- RAW MODEL RESPONSE FOR BUCKET (structured parse failed) ---\n{}\n------------------------\n\n",
+                report.reasoning.trim()
+            ));
+        }
 
         // Write rich per-file analysis blocks
         for (i, job) in bucket.iter().enumerate() {
@@ -1381,7 +1442,7 @@ async fn generate_manifest(
                 }
                 (a.verdict.clone(), a.analysis.clone())
             } else {
-                // Fallback: model did not return valid structured JSON.
+                // Fallback: model did not return valid structured JSON for this position.
                 // Still respect the top-level is_error from this bucket's LLM response.
                 let fallback_verdict = if report.is_error {
                     "VIOLATION FOUND (structured output failed to parse)".to_string()
@@ -1389,7 +1450,19 @@ async fn generate_manifest(
                     "CERTIFIED (structured output failed to parse)".to_string()
                 };
 
-                let fallback_text = if analyses.is_empty() {
+                let fallback_text = if is_multi_bucket && analyses.is_empty() {
+                    // IMPORTANT: When a multi-file bucket produced an unparsable response
+                    // (e.g. duplicate keys, extra prose, markdown, or the whole batch in one blob),
+                    // do NOT stuff the entire raw model output (which may describe all files)
+                    // into this individual file's .raa report. That pollutes the per-file record.
+                    // The raw response is still captured in the aggregated certify-report-*.raa
+                    // via report_entries below.
+                    "[MODEL DID NOT RETURN USABLE STRUCTURED OUTPUT FOR THIS FILE]\n\n\
+                     The LLM response for the bucket containing this file could not be parsed into per-file records.\n\
+                     The full raw model output (including any batch data) is preserved in the main certify-report-*.raa\n\
+                     file inside this job folder for manual review.".to_string()
+                } else if analyses.is_empty() {
+                    // Single-file bucket (or other non-multi case) — the full raw reasoning is the analysis.
                     format!(
                         "[MODEL DID NOT RETURN STRUCTURED OUTPUT]\n\n{}",
                         report.reasoning.trim()
