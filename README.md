@@ -63,7 +63,7 @@ npm run tauri build
 *   **Backend:** Rust / Tauri v2 (Forensic Engine & OS Integration).
 *   **Parallelism:** `Rayon` for multi-core SHA-256 file hashing.
 *   **Intelligence:** Integrated with xAI Grok for heuristic auditing (fully dynamic Base URL + Model Name).
-*   **Architecture:** Granular per-file `.raa` reports + dated job folders (see [VAULT_ARCHITECTURE.md](VAULT_ARCHITECTURE.md) for the full design).
+*   **Architecture:** Granular per-file `.raa` reports + dated job folders (see [docs/VAULT_ARCHITECTURE.md](docs/VAULT_ARCHITECTURE.md) for the full design).
 
 ---
 
@@ -83,9 +83,9 @@ npm run tauri build
 
 ## 📚 Documentation & References
 
-- [ROADMAP.md](ROADMAP.md) — High-level status, phases, and current plan
-- [VAULT_ARCHITECTURE.md](VAULT_ARCHITECTURE.md) — Detailed technical design for the granular per-file reports + job folder architecture
-- [PROJECT_MEMORY.md](PROJECT_MEMORY.md) — Persistent project knowledge, rules, and session history
+- [docs/ROADMAP.md](docs/ROADMAP.md) — High-level status, phases, and current plan
+- [docs/VAULT_ARCHITECTURE.md](docs/VAULT_ARCHITECTURE.md) — Detailed technical design for the granular per-file reports + job folder architecture
+- [docs/PROJECT_MEMORY.md](docs/PROJECT_MEMORY.md) — Persistent project knowledge, rules, and session history
 
 ## ⚖️ License
 Proprietary / RAA-Certified.

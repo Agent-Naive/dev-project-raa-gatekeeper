@@ -386,10 +386,10 @@ Today was a genuinely productive day. We made real, visible progress on the gran
 - Confirmed Git details: remote `https://github.com/Agent-Naive/RAA-Gatekeeper.git`, branch `main`, clean working tree at time of switch.
 - Established project context using the proper Grok invocation: `~/.grok/bin/grok --cwd /Users/agent-naive/dev/RAA-Gatekeeper inspect`. This correctly reported CWD + Git root, no project-local instructions/config yet, and user-level Grok config.
 - Performed deep reads of the project's own long-term memory artifacts:
-  - ROADMAP.md (full) — captured exact current status and staged plan.
-  - This file (PROJECT_MEMORY.md) — re-read permanent knowledge, git rules, and 2026-05-30 session history for continuity.
-  - RAA-Vision.md (full) — high-level philosophy.
-  - VAULT_ARCHITECTURE.md (full) — the comprehensive internal reference document for the granular architecture (created as a fallback to prevent context loss).
+  - docs/ROADMAP.md (full) — captured exact current status and staged plan.
+  - This file (docs/PROJECT_MEMORY.md) — re-read permanent knowledge, git rules, and 2026-05-30 session history for continuity.
+  - docs/RAA-Vision.md (full) — high-level philosophy.
+  - docs/VAULT_ARCHITECTURE.md (full) — the comprehensive internal reference document for the granular architecture (created as a fallback to prevent context loss).
   - Attempted direct read of the foundational `RAA Gatekeeper.pdf` on Desktop (the "Birth of RAA" origin doc from ~April 5, 2026). Access blocked by macOS ("Operation not permitted"). Relied on RAA-Vision.md + references in other docs as proxy.
 - Synthesized and internalized "where we left off" for the entire project (detailed below).
 - Confirmed no AGENTS.md or local `.grok/` directory exists in the repo yet (opportunity for future project rules).

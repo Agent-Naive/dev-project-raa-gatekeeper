@@ -96,7 +96,7 @@
 ## 🚀 Granular Vault Architecture: Per-File Forensic Reports + Job Folders
 
 **Note:** This is the current architecture (previously referred to internally during planning as the "New Path Forward").  
-See [VAULT_ARCHITECTURE.md](VAULT_ARCHITECTURE.md) for the full detailed technical reference, locked decisions, constraints, success criteria, and open questions. The summary below is kept for high-level visibility only.
+See [docs/VAULT_ARCHITECTURE.md](docs/VAULT_ARCHITECTURE.md) for the full detailed technical reference, locked decisions, constraints, success criteria, and open questions. The summary below is kept for high-level visibility only.
 
 **Core Philosophy**  
 "Trust, then Certify." — taken to its logical conclusion: every individual file audited deserves its own first-class, self-contained forensic artifact.
@@ -129,7 +129,7 @@ See [VAULT_ARCHITECTURE.md](VAULT_ARCHITECTURE.md) for the full detailed technic
 
 ### Staged Implementation Plan (Summary)
 
-Full technical details, locked decisions, constraints, and in-depth rationale live in [VAULT_ARCHITECTURE.md](VAULT_ARCHITECTURE.md). The summary below is for high-level visibility only.
+Full technical details, locked decisions, constraints, and in-depth rationale live in [docs/VAULT_ARCHITECTURE.md](docs/VAULT_ARCHITECTURE.md). The summary below is for high-level visibility only.
 
 - **Stage 1: ~RAA-CONTROL-Manifest** — Create dated job folder + write static `~RAA-CONTROL-Manifest.log` (inventory + hierarchy) as the very first artifact. **Status: Initial version complete** (inventory written early; later finalized with DNA Registry at job end).
 - **Stage 2: Real-Time Right Pane Comfort Feed (COMPLETED pane)** — Show individual .raa files being emitted in real time during long jobs. **Status: In progress / partial**.

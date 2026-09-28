@@ -132,8 +132,8 @@ CSS (src/app.css):
 - Styles for right-pane comfort feed and vault list
 
 Other important files:
-- PROJECT_MEMORY.md (permanent mission + push discipline + capture points)
-- ROADMAP.md (high-level plan and status)
+- docs/PROJECT_MEMORY.md (permanent mission + push discipline + capture points)
+- docs/ROADMAP.md (high-level plan and status)
 
 ================================================================================
 ## 5. NAMING & CONVENTIONS
